@@ -1,8 +1,8 @@
 import os
 import json
 import logging
-from dotenv import load_dotenv
 
+from dotenv import load_dotenv
 import requests
 import discord
 from discord.ext import commands, tasks
