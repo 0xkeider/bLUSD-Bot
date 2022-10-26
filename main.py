@@ -48,7 +48,7 @@ def get_usd_price(curve_data, pool_id, token):
 def main():
 
     # Broadcast version number
-    logging.info('Script Built on 22/10/2022')
+    logging.info('Script Built on 26/10/2022')
 
     # Connect to Discord
     client = discord.Client(intents=discord.Intents.default())
@@ -70,7 +70,7 @@ def main():
             etherscan_json = call_API('Etherscan', ETHERSCAN_API_URL)
             bLUSD_supply = Web3.fromWei(int(etherscan_json['result']), 'ether')
 
-            logging.info(f"Current prices: LUSD = ${round(LUSD_usdPrice, 4)}, bLUSD = ${round(bLUSD_usdPrice, 4)} | {millify(bLUSD_supply, precision=2)} bLUSD circulating")
+            logging.info(f"Current prices: LUSD = ${round(LUSD_usdPrice, 4)}, bLUSD = ${round(bLUSD_usdPrice, 4)} = {round(bLUSD_LUSDPrice, 4)} LUSD | {millify(bLUSD_supply, precision=2)} bLUSD circulating")
 
             await client.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=f"{millify(bLUSD_supply, precision=2)} circulating"))
 
