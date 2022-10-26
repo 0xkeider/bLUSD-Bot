@@ -70,9 +70,9 @@ def main():
             etherscan_json = call_API('Etherscan', ETHERSCAN_API_URL)
             bLUSD_supply = Web3.fromWei(int(etherscan_json['result']), 'ether')
 
-            logging.info(f"Current prices: LUSD = ${round(LUSD_usdPrice, 4)}, bLUSD = ${round(bLUSD_usdPrice, 4)} | {millify(bLUSD_supply)} bLUSD circulating")
+            logging.info(f"Current prices: LUSD = ${round(LUSD_usdPrice, 4)}, bLUSD = ${round(bLUSD_usdPrice, 4)} | {millify(bLUSD_supply, precision=2)} bLUSD circulating")
 
-            await client.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=f"{millify(bLUSD_supply)} circulating"))
+            await client.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=f"{millify(bLUSD_supply, precision=2)} circulating"))
 
             # Update nickname in every connected guild
             total_guilds = 0
