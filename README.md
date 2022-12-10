@@ -6,6 +6,8 @@
 
 2. Etherscan API Key - [Etherscan API](https://etherscan.io/apis)
 
+3. Alchemy API Key - [Alchemy API](https://www.alchemy.com/)
+
 ## Initial Setup
 
 1. Create a `.env` file and insert your API keys.
@@ -13,6 +15,7 @@
 ```
 DISCORD_API_KEY=
 ETHERSCAN_API_KEY=
+ALCHEMY_API_KEY=
 ```
 
 2. Run `main.py`.
