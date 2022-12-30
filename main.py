@@ -53,11 +53,8 @@ def call_API(api_name, API_URL):
 
 def get_usd_price(curve_data, pool_id, token):
     pool_data = curve_data['data']['poolData'][pool_id]
-    for coins in pool_data['underlyingCoins']:
-        coin_data = coins
-        if coin_data['symbol'] == token:
-            usdPrice = coin_data['usdPrice']
-            return usdPrice
+    symbol_to_price_map = {coin['symbol']: coin['usdPrice'] for coin in pool_data['underlyingCoins']}
+    return symbol_to_price_map.get(token)
 
 def get_reserve_bucket():
     try:
