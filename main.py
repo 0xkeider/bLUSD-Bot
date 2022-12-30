@@ -38,13 +38,18 @@ logging.basicConfig(
 )
 
 def call_API(api_name, API_URL):
-    logging.info(f"Requesting {api_name} API...")
-    response = requests.get(
-        API_URL,
-        timeout=5
-    )
-    logging.info('Request Complete.')
-    return response.json()
+    try:
+        logging.info(f"Requesting {api_name} API...")
+        response = requests.get(
+            API_URL,
+            timeout=5
+        )
+        logging.info('Request Complete.')
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        # If there is any exception raised while making the request, log the error and return None
+        logging.error(f"Error while requesting {api_name} API: {e}")
+        return None
 
 def get_usd_price(curve_data, pool_id, token):
     pool_data = curve_data['data']['poolData'][pool_id]
@@ -61,13 +66,19 @@ def get_reserve_bucket():
         reserveBucket = Web3.fromWei(int(reserveBucketRaw), 'ether')
         logging.info('Request Complete.')
         return reserveBucket
-    except:
-        logging.error("Web3 call failed")
+    except ValueError:
+        # Handle errors when the value passed to Web3.fromWei is not a valid integer
+        logging.error("Error converting value to integer")
+        return None
+    except Exception as e:
+        # Catch any other exceptions and log the error
+        logging.error("Web3 call failed: {}".format(e))
+        return None
 
 def main():
 
     # Broadcast version number
-    logging.info('Script Built on 10/12/2022')
+    logging.info('Script Built on 30/12/2022')
 
     # Connect to Discord
     client = discord.Client(intents=discord.Intents.default())
@@ -92,8 +103,8 @@ def main():
 
             reserveBucketSupply = get_reserve_bucket()
 
-            logging.info(f"Current prices: LUSD = ${round(LUSD_usdPrice, 4)}, bLUSD = ${round(bLUSD_usdPrice, 4)} = {round(bLUSD_LUSDPrice, 4)} LUSD | {millify(bLUSD_supply, precision=2)} bLUSD circulating")
-            logging.info(f"Reserve Bucket: {millify(reserveBucketSupply, precision=2)} LUSD")
+            logging.info(f"LUSD = ${round(LUSD_usdPrice, 4)} | bLUSD = ${round(bLUSD_usdPrice, 4)} = {round(bLUSD_LUSDPrice, 4)} LUSD")
+            logging.info(f"Reserve bucket: {millify(reserveBucketSupply, precision=2)} LUSD | Circulating supply: {millify(bLUSD_supply, precision=2)}")
 
             floorPrice = reserveBucketSupply/bLUSD_supply
 
@@ -106,8 +117,19 @@ def main():
                 await client.get_guild(guild.id).me.edit(nick=nickname)
                 total_guilds += 1
             logging.info(f"Updating activity, watching {total_guilds} guild(s)")
-        except:
-            logging.error("Error occurred, loop not executed")
+            
+        except TypeError as e:
+            # Handle errors when a variable is None or has the wrong type
+            logging.error("TypeError occurred: {}".format(e))
+        except KeyError as e:
+            # Handle errors when a dictionary key is not found
+            logging.error("KeyError occurred: {}".format(e))
+        except ZeroDivisionError as e:
+            # Handle errors when division by zero occurs
+            logging.error("ZeroDivisionError occurred: {}".format(e))
+        except Exception as e:
+            # Catch any other exceptions and log the error
+            logging.error("Error occurred: {}".format(e))
 
     client.run(DISCORD_TOKEN)
 
