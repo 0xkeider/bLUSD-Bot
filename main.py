@@ -18,7 +18,7 @@ ETHERSCAN_API_KEY = os.getenv('ETHERSCAN_API_KEY')
 bLUSD_CONTRACT_ADDRESS       = '0xB9D7DdDca9a4AC480991865EfEf82E01273F79C3'
 CHICKENBOND_CONTRACT_ADDRESS = '0x57619FE9C539f890b19c61812226F9703ce37137'
 
-CURVE_API_URL     = 'https://api.curve.fi/api/getPools/ethereum/factory-crypto'
+CURVE_API_URL     = 'https://api.curve.fi/v1/getPools/big/ethereum'
 ALCHEMY_API_URL   = f"https://eth-mainnet.g.alchemy.com/v2/{ALCHEMY_API_KEY}"
 ETHERSCAN_API_URL = f"https://api.etherscan.io/api?module=stats&action=tokensupply&contractaddress={bLUSD_CONTRACT_ADDRESS}&apikey={ETHERSCAN_API_KEY}"
 
@@ -31,8 +31,7 @@ contract = web3.eth.contract(address=CHICKENBOND_CONTRACT_ADDRESS, abi=abi)
 # Logging Config
 logging.basicConfig(
     level=logging.INFO,
-    format='{asctime} [{levelname:<8}] {message}',
-    datefmt="%d %b %Y %H:%M:%S %z",
+    format='[{levelname:<8}] {message}',
     style='{',
     filemode='w'
 )
@@ -44,27 +43,29 @@ def call_API(api_name, API_URL):
             API_URL,
             timeout=5
         )
-        logging.info('Request Complete.')
+        logging.info(f"{api_name} API request complete.")
         return response.json()
     except requests.exceptions.RequestException as e:
         # If there is any exception raised while making the request, log the error and return None
         logging.error(f"Error while requesting {api_name} API: {e}")
         return None
 
-def get_usd_price(curve_data, pool_id, token):
-    pool_data = curve_data['data']['poolData'][pool_id]
-    symbol_to_price_map = {coin['symbol']: coin['usdPrice'] for coin in pool_data['underlyingCoins']}
-    return symbol_to_price_map.get(token)
+def get_usd_price(curve_data, pool_name, token):
+    pool_data = curve_data['data']['poolData']
+    for pool in pool_data:
+        if pool['name'] == pool_name:
+            coin_data = {coin['symbol']: coin['usdPrice'] for coin in pool['coins']}
+            return coin_data.get(token)
 
 def get_reserve_bucket():
     try:
         logging.info(f"Requesting Alchemy API...")
         reserveBucketRaw = contract.functions.getTotalAcquiredLUSD().call()
-        reserveBucket = Web3.fromWei(int(reserveBucketRaw), 'ether')
-        logging.info('Request Complete.')
+        reserveBucket = Web3.from_wei(int(reserveBucketRaw), 'ether')
+        logging.info('Alchemy API request complete.')
         return reserveBucket
     except ValueError:
-        # Handle errors when the value passed to Web3.fromWei is not a valid integer
+        # Handle errors when the value passed to Web3.from_wei is not a valid integer
         logging.error("Error converting value to integer")
         return None
     except Exception as e:
@@ -75,7 +76,7 @@ def get_reserve_bucket():
 def main():
 
     # Broadcast version number
-    logging.info('Script Built on 30/12/2022')
+    logging.info('Script Built on 23/3/2024')
 
     # Connect to Discord
     client = discord.Client(intents=discord.Intents.default())
@@ -83,20 +84,22 @@ def main():
     async def on_ready():
         if not loop.is_running():
             loop.start()
-        logging.info('Logged in as {0.user}'.format(client))
-        logging.info(f"Connected to Web3: {web3.isConnected()}")
+        logging.info(f"Logged in as {client.user}")
+        logging.info(f"Connected to Web3: {web3.is_connected()}")
 
     # Update activity every minute
     @tasks.loop(seconds=60)
     async def loop():
         try:
+            # Retrieve prices of LUSD and bLUSD in USD
             curve_json = call_API('Curve', CURVE_API_URL)
-            LUSD_usdPrice = get_usd_price(curve_json, 134, 'LUSD')
-            bLUSD_usdPrice = get_usd_price(curve_json, 134, 'bLUSD')
+            LUSD_usdPrice = get_usd_price(curve_json, 'Curve.fi Factory USD Metapool: Liquity', 'LUSD')
+            bLUSD_usdPrice = get_usd_price(curve_json, 'Curve.fi Factory Crypto Pool: bLUSD_LUSD3CRV', 'bLUSD')
             bLUSD_LUSDPrice = bLUSD_usdPrice/LUSD_usdPrice
 
+            # Retrieve bLUSD supply
             etherscan_json = call_API('Etherscan', ETHERSCAN_API_URL)
-            bLUSD_supply = Web3.fromWei(int(etherscan_json['result']), 'ether')
+            bLUSD_supply = Web3.from_wei(int(etherscan_json['result']), 'ether')
 
             reserveBucketSupply = get_reserve_bucket()
 
@@ -105,7 +108,7 @@ def main():
 
             floorPrice = reserveBucketSupply/bLUSD_supply
 
-            await client.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=f"{round(floorPrice, 3)} LUSD Floor 🚀"))
+            await client.change_presence(activity=discord.CustomActivity(name=f"{round(floorPrice, 3)} LUSD Floor Price 🚀", type=discord.ActivityType.custom))
 
             # Update nickname in every connected guild
             total_guilds = 0
@@ -117,16 +120,16 @@ def main():
             
         except TypeError as e:
             # Handle errors when a variable is None or has the wrong type
-            logging.error("TypeError occurred: {}".format(e))
+            logging.exception("TypeError occurred: {}".format(e))
         except KeyError as e:
             # Handle errors when a dictionary key is not found
-            logging.error("KeyError occurred: {}".format(e))
+            logging.exception("KeyError occurred: {}".format(e))
         except ZeroDivisionError as e:
             # Handle errors when division by zero occurs
-            logging.error("ZeroDivisionError occurred: {}".format(e))
+            logging.exception("ZeroDivisionError occurred: {}".format(e))
         except Exception as e:
             # Catch any other exceptions and log the error
-            logging.error("Error occurred: {}".format(e))
+            logging.exception("Error occurred: {}".format(e))
 
     client.run(DISCORD_TOKEN)
 

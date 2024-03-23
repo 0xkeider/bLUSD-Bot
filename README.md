@@ -1,5 +1,7 @@
 # bLUSD Price Bot
 
+A Discord sidebar bot to display real-time market data for bLUSD.
+
 ## Requirements
 
 1. Discord API Key - [Discord Developer Portal](https://discord.com/developers/applications/)
@@ -8,23 +10,28 @@
 
 3. Alchemy API Key - [Alchemy API](https://www.alchemy.com/)
 
-## Initial Setup
+## Installation
 
-1. Create a `.env` file and insert your API keys.
+1. 
 
+```python
+pip install -r requirements.txt
 ```
+
+2. Create a `.env` file in the root folder and paste your API keys.
+
+```bash
 DISCORD_API_KEY=
 ETHERSCAN_API_KEY=
 ALCHEMY_API_KEY=
 ```
 
-2. Run `main.py`.
-
+3. Run `main.py`.
 
 ## Configuration
 
 The bot updates the price every 60 seconds by default. To change this, modify the interval
-```
+```python
 @tasks.loop(seconds=60)
 ```
 You can use the properties `seconds`, `minutes` and `hours`.
