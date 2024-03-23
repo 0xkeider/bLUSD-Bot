@@ -15,12 +15,14 @@ DISCORD_TOKEN     = os.getenv('DISCORD_API_KEY')
 ALCHEMY_API_KEY   = os.getenv('ALCHEMY_API_KEY')
 ETHERSCAN_API_KEY = os.getenv('ETHERSCAN_API_KEY')
 
-bLUSD_CONTRACT_ADDRESS       = '0xB9D7DdDca9a4AC480991865EfEf82E01273F79C3'
+LUSD_CONTRACT_ADDRESS        = '0x5f98805A4E8be255a32880FDeC7F6728C6568bA0'
+BLUSD_CONTRACT_ADDRESS       = '0xB9D7DdDca9a4AC480991865EfEf82E01273F79C3'
 CHICKENBOND_CONTRACT_ADDRESS = '0x57619FE9C539f890b19c61812226F9703ce37137'
 
-CURVE_API_URL     = 'https://api.curve.fi/v1/getPools/big/ethereum'
+
+# CURVE_API_URL     = 'https://api.curve.fi/v1/getPools/big/ethereum'
 ALCHEMY_API_URL   = f"https://eth-mainnet.g.alchemy.com/v2/{ALCHEMY_API_KEY}"
-ETHERSCAN_API_URL = f"https://api.etherscan.io/api?module=stats&action=tokensupply&contractaddress={bLUSD_CONTRACT_ADDRESS}&apikey={ETHERSCAN_API_KEY}"
+ETHERSCAN_API_URL = f"https://api.etherscan.io/api?module=stats&action=tokensupply&contractaddress={BLUSD_CONTRACT_ADDRESS}&apikey={ETHERSCAN_API_KEY}"
 
 web3 = Web3(Web3.HTTPProvider(ALCHEMY_API_URL))
 
@@ -36,11 +38,11 @@ logging.basicConfig(
     filemode='w'
 )
 
-def call_API(api_name, API_URL):
+def call_API(api_name, api_url):
     try:
         logging.info(f"Requesting {api_name} API...")
         response = requests.get(
-            API_URL,
+            api_url,
             timeout=5
         )
         logging.info(f"{api_name} API request complete.")
@@ -49,13 +51,20 @@ def call_API(api_name, API_URL):
         # If there is any exception raised while making the request, log the error and return None
         logging.error(f"Error while requesting {api_name} API: {e}")
         return None
-
-def get_usd_price(curve_data, pool_name, token):
-    pool_data = curve_data['data']['poolData']
-    for pool in pool_data:
-        if pool['name'] == pool_name:
-            coin_data = {coin['symbol']: coin['usdPrice'] for coin in pool['coins']}
-            return coin_data.get(token)
+        
+def get_curve_usd_price(contract_address):
+    try:
+        logging.info("Requesting Curve API...")
+        response = requests.get(
+            f"https://prices.curve.fi/v1/usd_price/ethereum/{contract_address}",
+            timeout=5
+        )
+        logging.info("Curve API request complete.")
+        return response.json()['data']['usd_price']
+    except requests.exceptions.RequestException as e:
+        # If there is any exception raised while making the request, log the error and return None
+        logging.error(f"Error while requesting Curve API: {e}")
+        return None
 
 def get_reserve_bucket():
     try:
@@ -92,9 +101,8 @@ def main():
     async def loop():
         try:
             # Retrieve prices of LUSD and bLUSD in USD
-            curve_json = call_API('Curve', CURVE_API_URL)
-            LUSD_usdPrice = get_usd_price(curve_json, 'Curve.fi Factory USD Metapool: Liquity', 'LUSD')
-            bLUSD_usdPrice = get_usd_price(curve_json, 'Curve.fi Factory Crypto Pool: bLUSD_LUSD3CRV', 'bLUSD')
+            LUSD_usdPrice = get_curve_usd_price(LUSD_CONTRACT_ADDRESS)
+            bLUSD_usdPrice = get_curve_usd_price(BLUSD_CONTRACT_ADDRESS)
             bLUSD_LUSDPrice = bLUSD_usdPrice/LUSD_usdPrice
 
             # Retrieve bLUSD supply
@@ -108,7 +116,7 @@ def main():
 
             floorPrice = reserveBucketSupply/bLUSD_supply
 
-            await client.change_presence(activity=discord.CustomActivity(name=f"{round(floorPrice, 3)} LUSD Floor Price 🚀", type=discord.ActivityType.custom))
+            await client.change_presence(activity=discord.CustomActivity(name=f"{round(floorPrice, 4)} LUSD Floor Price 🚀", type=discord.ActivityType.custom))
 
             # Update nickname in every connected guild
             total_guilds = 0
