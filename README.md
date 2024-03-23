@@ -12,13 +12,13 @@ A Discord sidebar bot to display real-time market data for bLUSD.
 
 ## Installation
 
-1. 
+1. Install dependencies:
 
 ```python
 pip install -r requirements.txt
 ```
 
-2. Create a `.env` file in the root folder and paste your API keys.
+2. Create a `.env` file in the root folder and paste your API keys:
 
 ```bash
 DISCORD_API_KEY=
