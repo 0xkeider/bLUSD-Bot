@@ -1,10 +1,10 @@
-FROM python:3.10.9
+FROM python:3.12.2
 
 ENV PYTHONUNBUFFERED=1
 
 COPY .env .
 COPY main.py .
 
-RUN pip install python-dotenv requests discord web3 millify
+RUN pip install -r requirements.txt
 
 CMD [ "python", "./main.py" ]
